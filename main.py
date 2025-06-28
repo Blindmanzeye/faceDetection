@@ -41,11 +41,13 @@ class FaceClassifier(nn.Module):
     # 2 Classes because There is only going to be a folder containing me
     def __init__(self, num_classes=1):
         super(FaceClassifier, self).__init__()
-        self.base_model = timm.create_model('resnet50', pretrained=True)
+        self.base_model = timm.create_model('efficientnet_b0', pretrained=True)
         self.features = nn.Sequential(*list(self.base_model.children())[:-1])
 
         enet_out_size = 1280
-        self.classifier=nn.Linear(enet_out_size, num_classes)
+        self.classifier=nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(enet_out_size, num_classes))
 # Forward pass function
     def forward(self, x):
         x = self.features(x)
@@ -57,7 +59,7 @@ class FaceClassifier(nn.Module):
 # Iphone Dimentions: Portrait (2316, 3088), Landscape (4023, 3024)
 # ykw, screw my gpu we doing full res portrait
 transform = transforms.Compose([
-    transforms.Resize((2316, 3088)),
+    transforms.Resize((300, 400)),
     transforms.ToTensor(),
 ])
 
@@ -70,9 +72,9 @@ trainDataset =  FaceDataset(trainFolder, transform=transform)
 testDataset = FaceDataset(testFolder, transform=transform)
 validDataset = FaceDataset(validFolder, transform=transform)
 
-trainLoader = DataLoader(trainDataset, batch_size=32, shuffle=True)
-testLoader = DataLoader(testDataset, batch_size=32, shuffle=False)
-validLoader = DataLoader(validDataset, batch_size=32, shuffle=False)
+trainLoader = DataLoader(trainDataset, batch_size=10, shuffle=True)
+testLoader = DataLoader(testDataset, batch_size=10, shuffle=False)
+validLoader = DataLoader(validDataset, batch_size=10, shuffle=False)
 
 numEpochs = 10
 trainLosses, validLosses = [],[]
@@ -103,7 +105,7 @@ for epoch in range(numEpochs):
     model.eval()
     runningLoss = 0.0
     with torch.no_grad():
-        for images, labels in validLoader():
+        for images, labels in validLoader:
             images, labels = images.to(device), labels.to(device)
 
             outputs = model(images)
@@ -149,7 +151,7 @@ while cont:
     if test_image.lower() == "n":
         break
     transform = transforms.Compose([
-        transforms.Resize((2316, 3088)),
+        transforms.Resize((300, 400)),
         transforms.ToTensor()
     ])
 
